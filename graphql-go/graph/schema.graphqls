@@ -1,0 +1,79 @@
+directive @oneOf on INPUT_OBJECT
+
+type Actor {
+  firstName: String!
+  lastName: String!
+  films(filter: FilmFilter): [Film!]!
+}
+
+input ActorFilter {
+  and: [ActorFilter!]
+  or: [ActorFilter!]
+  film: FilmFilter
+  firstNameEq: String
+  firstNameIn: [String!]
+  firstNameNotEq: String
+  firstNameNotIn: [String!]
+  lastNameEq: String
+  lastNameIn: [String!]
+  lastNameNotEq: String
+  lastNameNotIn: [String!]
+}
+
+type Category {
+  name: String!
+}
+
+input CategoryFilter {
+  nameEq: String
+  nameIn: [String!]
+  nameNotEq: String
+  nameNotIn: [String!]
+}
+
+type Film {
+  title: String!
+  description: String!
+  length: Int!
+  actors(filter: ActorFilter): [Actor!]!
+  categories: [Category!]!
+  language: Language!
+  originalLanguage: Language
+}
+
+input FilmFilter {
+  and: [FilmFilter!]
+  or: [FilmFilter!]
+  actor: ActorFilter
+  category: CategoryFilter
+  language: LanguageFilter
+  originalLanguage: LanguageFilter
+  titleEq: String
+  titleNotEq: String
+  titleIn: [String!]
+  titleNotIn: [String!]
+  titleContains: String
+  lengthEq: Int
+  lengthGt: Int
+  lengthGte: Int
+  lengthLt: Int
+  lengthLte: Int
+}
+
+type Language {
+  name: String!
+}
+
+input LanguageFilter {
+  nameEq: String
+  nameIn: [String!]
+  nameNotEq: String
+  nameNotIn: [String!]
+  nameContains: String
+}
+
+type Query {
+  actors(filter: ActorFilter): [Actor!]!
+  films(filter: FilmFilter): [Film!]!
+}
+

@@ -1,0 +1,18 @@
+# Builder
+FROM golang:1.23-bookworm as builder
+WORKDIR /build
+COPY ./bin ./bin
+COPY ./graph ./graph
+COPY ./internal ./internal
+COPY ./tools.go ./tools.go
+COPY ./go.mod ./go.mod
+COPY ./go.sum ./go.sum
+COPY ./gqlgen.yml ./gqlgen.yml
+
+RUN go mod download
+RUN CGO_ENABLED=0 go build bin/graphql-go.go
+
+# Runner
+FROM gcr.io/distroless/static-debian12
+COPY --from=builder /build/graphql-go /opt/server
+ENTRYPOINT ["/opt/server"]

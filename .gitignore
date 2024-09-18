@@ -1,0 +1,8 @@
+### Ignore
+**/.*
+**/target
+**/*.iml
+
+### Exceptions
+!.gitignore
+!.cargo
