@@ -1,0 +1,5 @@
+[build]
+### Require a non-ancient CPU, i.e. v3 requries
+### CPU to be at least from 2013 (i.e. Haswell)
+### and must support AVX2
+rustflags = ["-C", "target_cpu=x86-64-v3"]

@@ -1,0 +1,44 @@
+[package]
+name = "graphql-rust-dyn"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = "thin"
+
+[dependencies]
+
+### Core
+tokio = { version = "1", features = ["full"] }
+
+### Web
+axum = "0.8"
+tower = "0.5"
+tower-http = { version = "0.6", default-features = false, features = ["catch-panic", "timeout", "request-id", "trace", "validate-request", "util"] }
+async-graphql = { version = "7", default-features = false, features = ["time", "uuid", "dataloader", "tokio-sync", "tracing", "playground", "graphiql"] }
+async-graphql-axum = "7"
+
+### Databse
+deadpool-postgres = { version = "0.14", features = ["serde"] }
+tokio-postgres = { version = "0.7", features = ["with-time-0_3"] }
+
+### Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json", "time", "tracing-log"] }
+
+### Config
+config = { version = "0.15", default-features = false, features = ["json"] }
+
+### Serde
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+### Misc
+uuid = { version = "1", features = ["fast-rng", "v4"] }
+rustc-hash = "2"
+anyhow = "1"
+bytes = "1"
+futures-util = "0.3"
+tower-service = "0.3"

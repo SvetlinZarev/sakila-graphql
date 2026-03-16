@@ -1,0 +1,13 @@
+### Builder
+FROM rust:1.94.0-slim-trixie as builder
+WORKDIR build
+COPY ./.cargo ./.cargo
+COPY ./src ./src
+COPY ./Cargo.toml ./
+COPY ./Cargo.lock ./
+RUN cargo build --release
+
+### Runner
+FROM gcr.io/distroless/cc-debian13 as runner
+COPY --from=builder /build/target/release/graphql-rust /opt/server
+ENTRYPOINT ["/opt/server"]
