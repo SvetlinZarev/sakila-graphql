@@ -1,5 +1,6 @@
 use crate::config::ServiceConfig;
 use async_graphql::Executor;
+use axum::http::StatusCode;
 use axum::routing::{get, post_service};
 use axum::Router;
 use std::error::Error;
@@ -32,7 +33,10 @@ pub async fn start_server(
     state: AppState,
     schema: impl Executor,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let timeout_layer = TimeoutLayer::new(Duration::from_millis(config.server.request_timeout));
+    let timeout_layer = TimeoutLayer::with_status_code(
+        StatusCode::REQUEST_TIMEOUT,
+        Duration::from_millis(config.server.request_timeout),
+    );
     let tracing_layer = TraceLayer::new_for_http()
         .make_span_with(CustomMakeSpan::new())
         .on_request(CustomOnRequest::new())
