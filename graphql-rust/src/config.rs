@@ -1,18 +1,21 @@
-use figment::providers::{Env, Serialized};
-use figment::Figment;
+use config::Config;
 use serde::{Deserialize, Serialize};
 
-pub const SPLIT_AT_DOUBLE_UNDERSCORE: &str = "__";
-
-pub fn load<'a, PREFIX, SPLIT, CFG>(prefix: PREFIX, split: SPLIT) -> figment::error::Result<CFG>
+pub fn load<'a, PREFIX, SPLIT, CFG>(prefix: PREFIX, split: SPLIT) -> anyhow::Result<ServiceConfig>
 where
     PREFIX: AsRef<str>,
     SPLIT: AsRef<str>,
     CFG: Default + Serialize + Deserialize<'a>,
 {
-    Figment::from(Serialized::defaults(CFG::default()))
-        .merge(Env::prefixed(prefix.as_ref()).split(split.as_ref()))
-        .extract()
+    let defaults = CFG::default();
+    let defaults = serde_json::to_string(&defaults)?;
+
+    let cfg = Config::builder()
+        .add_source(config::File::from_str(&defaults, config::FileFormat::Json))
+        .add_source(config::Environment::with_prefix(prefix.as_ref()).separator(split.as_ref()))
+        .build()?;
+
+    Ok(cfg.try_deserialize()?)
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]

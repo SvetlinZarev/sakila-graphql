@@ -1,17 +1,18 @@
 use graphql_rust::config;
-use graphql_rust::config::{ServiceConfig, SPLIT_AT_DOUBLE_UNDERSCORE};
+use graphql_rust::config::ServiceConfig;
 use graphql_rust::graphql::build_schema;
 use graphql_rust::init::{init_db_pool, init_tracing};
 use graphql_rust::server::{start_server, AppState};
 use std::error::Error;
 
-const PREFIX: &str = "CFG__";
+const PREFIX: &str = "CFG";
+const CFG_SEPARATOR: &str = "__";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     init_tracing();
 
-    let cfg: ServiceConfig = config::load(PREFIX, SPLIT_AT_DOUBLE_UNDERSCORE)?;
+    let cfg = config::load::<_, _, ServiceConfig>(PREFIX, CFG_SEPARATOR)?;
 
     let db = init_db_pool(&cfg.db)?;
     let state = AppState::new(db.clone());
