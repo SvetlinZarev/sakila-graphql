@@ -14,7 +14,7 @@ lto = "thin"
 tokio = { version = "1", features = ["full"] }
 
 ### Web
-axum = "0.7"
+axum = "0.8"
 tower = "0.5"
 tower-http = { version = "0.6", default-features = false, features = ["catch-panic", "timeout", "request-id", "trace", "validate-request", "util"] }
 async-graphql = { version = "7", default-features = false, features = ["time", "uuid", "dataloader", "tokio-sync", "tracing", "playground", "graphiql"] }
@@ -36,10 +36,9 @@ serde = { version = "1", features = ["derive"] }
 
 
 ### Misc
-uuid = { version = "1.10", features = ["fast-rng", "v4"] }
-time = "0.3"
+uuid = { version = "1", features = ["fast-rng", "v4"] }
 rustc-hash = "2"
 anyhow = "1"
-bytes = "1.7"
+bytes = "1"
 futures-util = "0.3"
 tower-service = "0.3"
