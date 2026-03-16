@@ -200,7 +200,7 @@ impl<'v> Visitor<'v> for SqlVisitor<'v> {
             }
             Operation::NotIn => {
                 let param = self.add_param(val);
-                write!(&mut self.query, "<> ANY (${})", param)
+                write!(&mut self.query, "<> ALL (${})", param)
             }
             Operation::IsNull => {
                 write!(&mut self.query, "IS NULL")

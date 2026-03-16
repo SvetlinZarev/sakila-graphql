@@ -173,7 +173,7 @@ func (s *SqlVisitor) onValueFilter(f *ValueFilter) {
 	case NotIn:
 		{
 			param := s.addParam(f.Value)
-			s.query.WriteString(fmt.Sprintf("<> ANY($%d)", param))
+			s.query.WriteString(fmt.Sprintf("<> ALL($%d)", param))
 		}
 	case IsNull:
 		{
