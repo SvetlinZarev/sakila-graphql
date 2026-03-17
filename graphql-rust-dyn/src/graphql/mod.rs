@@ -6,6 +6,7 @@ use async_graphql::{Context, EmptyMutation, EmptySubscription, Executor, Object,
 mod core;
 pub mod loader;
 mod model;
+pub mod schema;
 
 pub fn build_schema(state: AppState) -> impl Executor {
     Schema::build(Query, EmptyMutation, EmptySubscription)

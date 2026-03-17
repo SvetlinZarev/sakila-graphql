@@ -17,7 +17,7 @@ tokio = { version = "1", features = ["full"] }
 axum = "0.8"
 tower = "0.5"
 tower-http = { version = "0.6", default-features = false, features = ["catch-panic", "timeout", "request-id", "trace", "validate-request", "util"] }
-async-graphql = { version = "7", default-features = false, features = ["time", "uuid", "dataloader", "tokio-sync", "tracing", "playground", "graphiql"] }
+async-graphql = { version = "7", default-features = false, features = ["time", "uuid", "dataloader", "tokio-sync", "tracing", "playground", "graphiql", "dynamic-schema"] }
 async-graphql-axum = "7"
 
 ### Databse
