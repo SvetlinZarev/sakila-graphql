@@ -724,6 +724,7 @@ dependencies = [
  "bytes",
  "config",
  "deadpool-postgres",
+ "foldhash 0.2.0",
  "futures-util",
  "rustc-hash",
  "serde",

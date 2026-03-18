@@ -1,10 +1,19 @@
-use crate::graphql::schema::model::{Cardinality, Kind, Presence, Property, Type};
+use crate::graphql::schema::model::{
+    Cardinality, DirectRelation, Kind, Presence, Property, Relation, RelationType, ReverseRelation,
+    Type, TypeName,
+};
 use async_graphql::dynamic::*;
+use foldhash::{HashMap, HashMapExt};
 use serde_json::Value;
 
 pub fn build_graphql_schema(metamodel: Vec<Type>) -> Result<Schema, SchemaError> {
     let mut schema_builder = Schema::build("Query", None, None);
     let mut query = Object::new("Query");
+
+    let mut types = HashMap::new();
+    for ty in &metamodel {
+        types.insert(&ty.name, ty);
+    }
 
     for ty in &metamodel {
         let mut obj = Object::new(ty.name.clone());
@@ -18,6 +27,14 @@ pub fn build_graphql_schema(metamodel: Vec<Type>) -> Result<Schema, SchemaError>
                 query = query.field(build_accessor_by_key(ty, property));
             }
         }
+
+        for relation in &ty.relations {
+            obj = obj.field(build_relation(&types, ty, relation)?);
+        }
+        //
+        // for relation in &ty.reverse_relations {
+        //     obj = obj.field(build_reverse_relation(relation));
+        // }
 
         let filter = build_type_filter_input(ty);
         query = query.field(build_accessor_by_filter(ty, &filter));
@@ -123,6 +140,81 @@ fn build_type_filter_input(ty: &Type) -> InputObject {
     }
 
     filter
+}
+
+fn build_relation(
+    types: &HashMap<&TypeName, &Type>,
+    source: &Type,
+    relation: &Relation,
+) -> Result<Field, SchemaError> {
+    match &relation.kind {
+        RelationType::Direct(spec) => build_direct_relation(types, source, relation, spec),
+        RelationType::Mediated(_) => todo!(),
+    }
+}
+
+fn build_direct_relation(
+    types: &HashMap<&TypeName, &Type>,
+    source_type: &Type,
+    relation: &Relation,
+    spec: &DirectRelation,
+) -> Result<Field, SchemaError> {
+    let Some(target_type) = types.get(&relation.target).copied() else {
+        return Err(SchemaError(format!(
+            "Relation [{}] refers to unknow type [{}]",
+            relation.name, relation.target
+        )));
+    };
+
+    let source_property = source_type
+        .properties
+        .iter()
+        .find(|p| p.name == spec.source_property)
+        .ok_or_else(|| SchemaError(format!("Relation {} refers to type {} via source property {}, which is not present in the source type", relation.name, relation.target, spec.source_property)))?;
+
+    let target_property = target_type
+        .properties
+        .iter()
+        .find(|p| p.name == spec.target_property)
+        .ok_or_else(|| SchemaError(format!("Relation {} refers to type {} via target property {}, which is not present in the target type", relation.name, relation.target, spec.target_property)))?;
+
+    let field = match direct_relation_cardinality(target_property) {
+        Cardinality::One => Field::new(
+            relation.name.clone(),
+            match direct_relation_presence(spec, source_property) {
+                Presence::Required => TypeRef::named_nn(target_type.name.clone()),
+                Presence::Optional => TypeRef::named(target_type.name.clone()),
+            },
+            default_resolver,
+        ),
+
+        Cardinality::Many => Field::new(
+            relation.name.clone(),
+            TypeRef::named_nn_list(target_type.name.clone()),
+            default_resolver,
+        ),
+    };
+
+    Ok(field)
+}
+
+fn direct_relation_cardinality(target_property: &Property) -> Cardinality {
+    match target_property.unique {
+        true => Cardinality::One,
+        false => Cardinality::Many,
+    }
+}
+
+fn direct_relation_presence(relation: &DirectRelation, source: &Property) -> Presence {
+    if Presence::Optional == source.presence {
+        return Presence::Optional;
+    }
+
+    relation.presence
+}
+
+fn build_reverse_relation(relation: &ReverseRelation) -> Field {
+    todo!()
 }
 
 fn get_type_ref(kind: Kind, presence: Presence, cardinality: Cardinality) -> TypeRef {

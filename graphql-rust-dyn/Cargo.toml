@@ -19,6 +19,7 @@ tower = "0.5"
 tower-http = { version = "0.6", default-features = false, features = ["catch-panic", "timeout", "request-id", "trace", "validate-request", "util"] }
 async-graphql = { version = "7", default-features = false, features = ["time", "uuid", "dataloader", "tokio-sync", "tracing", "playground", "graphiql", "dynamic-schema"] }
 async-graphql-axum = "7"
+tower-service = "0.3"
 
 ### Databse
 deadpool-postgres = { version = "0.14", features = ["serde"] }
@@ -41,4 +42,4 @@ rustc-hash = "2"
 anyhow = "1"
 bytes = "1"
 futures-util = "0.3"
-tower-service = "0.3"
+foldhash = "0.2"

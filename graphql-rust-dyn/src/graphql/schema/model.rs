@@ -57,6 +57,7 @@ pub enum RelationType {
 pub struct DirectRelation {
     pub source_property: PropertyName,
     pub target_property: PropertyName,
+    pub presence: Presence,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -228,6 +229,7 @@ mod tests {
                     kind: RelationType::Direct(DirectRelation {
                         source_property: PropertyName("owner_id".to_owned()),
                         target_property: PropertyName("id".to_owned()),
+                        presence: Presence::Optional,
                     }),
                     desc: Some("The owner ID".to_owned()),
                 },
