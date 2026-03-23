@@ -24,3 +24,8 @@ impl<'a, T> DerefMut for MaybeOwned<'a, T> {
         }
     }
 }
+
+pub enum Either<A, B> {
+    Left(A),
+    Right(B),
+}

@@ -28,14 +28,24 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             desc: Some("Employee of a company".to_owned()),
             table_name: TableName::new("t_employee"),
             key: vec![PropertyName::new("id")],
-            properties: vec![Property {
-                name: PropertyName::new("id"),
-                kind: Kind::Uuid,
-                presence: Presence::Required,
-                cardinality: Cardinality::One,
-                unique: true,
-                desc: Some("The ID of the instance".to_owned()),
-            }],
+            properties: vec![
+                Property {
+                    name: PropertyName::new("id"),
+                    kind: Kind::Uuid,
+                    presence: Presence::Required,
+                    cardinality: Cardinality::One,
+                    unique: true,
+                    desc: Some("The ID of the instance".to_owned()),
+                },
+                Property {
+                    name: PropertyName::new("group_id"),
+                    kind: Kind::Uuid,
+                    presence: Presence::Required,
+                    cardinality: Cardinality::One,
+                    unique: false,
+                    desc: Some("The ID of the instance".to_owned()),
+                },
+            ],
             relations: vec![],
             reverse_relations: vec![],
         },
@@ -61,6 +71,14 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                     unique: true,
                     desc: Some("The ID of the owner of this demo".to_owned()),
                 },
+                Property {
+                    name: PropertyName::new("owner_group"),
+                    kind: Kind::Uuid,
+                    presence: Presence::Required,
+                    cardinality: Cardinality::One,
+                    unique: false,
+                    desc: Some("The ID of the owner of this demo".to_owned()),
+                },
             ],
 
             relations: vec![
@@ -74,14 +92,24 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                     }),
                     desc: Some("The owner ID".to_owned()),
                 },
-                // Relation {
-                //     name: PropertyName("participants".to_owned()),
-                //     target: TypeName("Employee".to_owned()),
-                //     kind: RelationType::Mediated(MediatedRelation {
-                //         through: TableName("employee_demo".to_owned()),
-                //     }),
-                //     desc: Some("The participants IDs".to_owned()),
-                // },
+                Relation {
+                    name: PropertyName("owners".to_owned()),
+                    target: TypeName("employee".to_owned()),
+                    kind: RelationType::Direct(DirectRelation {
+                        source_property: PropertyName("owner_group".to_owned()),
+                        target_property: PropertyName("group_id".to_owned()),
+                        presence: Presence::Required,
+                    }),
+                    desc: Some("The owner group ID".to_owned()),
+                },
+                Relation {
+                    name: PropertyName("participants".to_owned()),
+                    target: TypeName("employee".to_owned()),
+                    kind: RelationType::Mediated(MediatedRelation {
+                        through: TableName("employee_demo".to_owned()),
+                    }),
+                    desc: Some("The participants IDs".to_owned()),
+                },
             ],
             reverse_relations: vec![ReverseRelation {
                 name: PropertyName("company".to_owned()),
