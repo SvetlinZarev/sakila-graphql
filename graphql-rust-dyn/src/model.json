@@ -1,0 +1,189 @@
+[
+  {
+    "name": "organization",
+    "desc": "The top-level entity representing a company.",
+    "table_name": "organizations",
+    "key": ["id"],
+    "properties": [
+      {
+        "name": "id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": true,
+        "desc": "Primary key"
+      },
+      {
+        "name": "name",
+        "kind": "string",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": false,
+        "desc": "Legal name"
+      }
+    ],
+    "relations": [],
+    "reverse_relations": [
+      {
+        "name": "employees",
+        "source": "user",
+        "source_property": "employer",
+        "desc": "Users belonging to this org"
+      }
+    ]
+  },
+  {
+    "name": "user",
+    "desc": "A registered person in the system.",
+    "table_name": "users",
+    "key": ["id"],
+    "properties": [
+      {
+        "name": "id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": true,
+        "desc": null
+      },
+      {
+        "name": "organization_id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": false,
+        "desc": "Foreign key for the employer relation"
+      },
+      {
+        "name": "email",
+        "kind": "string",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": true,
+        "desc": null
+      }
+    ],
+    "relations": [
+      {
+        "name": "employer",
+        "target": "organization",
+        "source_property": "organization_id",
+        "target_property": "id",
+        "presence": "required",
+        "desc": "Direct link to organization"
+      }
+    ],
+    "reverse_relations": []
+  },
+  {
+    "name": "project",
+    "desc": "A workspace for tasks.",
+    "table_name": "projects",
+    "key": ["id"],
+    "properties": [
+      {
+        "name": "id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": true,
+        "desc": null
+      }
+    ],
+    "relations": [
+      {
+        "name": "members",
+        "target": "user",
+        "through": "project_memberships",
+        "desc": "Mediated M:N relation via a join table"
+      }
+    ],
+    "reverse_relations": []
+  },
+  {
+    "name": "task",
+    "desc": "An actionable item within a project.",
+    "table_name": "tasks",
+    "key": ["id"],
+    "properties": [
+      {
+        "name": "id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": true,
+        "desc": null
+      },
+      {
+        "name": "project_id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": false,
+        "desc": "Foreign key for project"
+      },
+      {
+        "name": "creator_id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": false,
+        "desc": "Foreign key for user"
+      }
+    ],
+    "relations": [
+      {
+        "name": "project",
+        "target": "project",
+        "source_property": "project_id",
+        "target_property": "id",
+        "presence": "required",
+        "desc": "Direct link to parent project"
+      },
+      {
+        "name": "creator",
+        "target": "user",
+        "source_property": "creator_id",
+        "target_property": "id",
+        "presence": "required",
+        "desc": "The user who made the task"
+      }
+    ],
+    "reverse_relations": []
+  },
+  {
+    "name": "comment",
+    "desc": "Feedback on a specific task.",
+    "table_name": "comments",
+    "key": ["id"],
+    "properties": [
+      {
+        "name": "id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": true,
+        "desc": null
+      },
+      {
+        "name": "task_id",
+        "kind": "uuid",
+        "presence": "required",
+        "cardinality": "one",
+        "unique": false,
+        "desc": "Link to the parent task"
+      }
+    ],
+    "relations": [
+      {
+        "name": "parent_task",
+        "target": "task",
+        "source_property": "task_id",
+        "target_property": "id",
+        "presence": "required",
+        "desc": "The task this comment belongs to"
+      }
+    ],
+    "reverse_relations": []
+  }
+]

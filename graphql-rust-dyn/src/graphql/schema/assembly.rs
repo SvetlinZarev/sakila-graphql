@@ -202,10 +202,18 @@ fn build_type_filter_input(ty: &Type) -> InputObject {
     }
 
     for rel in ty.relations.iter() {
-        let target = &rel.target;
         let input = InputValue::new(
             rel.name.clone(),
-            TypeRef::named(filter_input_name_for_type(target)),
+            TypeRef::named(filter_input_name_for_type(&rel.target)),
+        );
+
+        filter = filter.field(input);
+    }
+
+    for rel in ty.reverse_relations.iter() {
+        let input = InputValue::new(
+            rel.name.clone(),
+            TypeRef::named(filter_input_name_for_type(&rel.source)),
         );
 
         filter = filter.field(input);
