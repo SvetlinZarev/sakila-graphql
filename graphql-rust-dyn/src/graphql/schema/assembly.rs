@@ -144,7 +144,7 @@ fn build_accessor_by_filter(ty: &Type, accessor_name: &str) -> Field {
     );
     accessor = accessor.argument(InputValue::new(
         "filter",
-        TypeRef::named(filter_name_for_type(ty)),
+        TypeRef::named(filter_input_name_for_type(&ty.name)),
     ));
 
     accessor
@@ -156,7 +156,7 @@ fn build_type_filter_input(ty: &Type) -> InputObject {
     const SUFFIX_CONTAINS: &str = "contains";
     const SUFFIX_NOT_CONTAINS: &str = "not_contains";
 
-    let mut filter = InputObject::new(filter_name_for_type(ty));
+    let mut filter = InputObject::new(filter_input_name_for_type(&ty.name));
     let type_name = filter.type_name().to_owned();
 
     filter = filter.field(InputValue::new("AND", TypeRef::named_nn_list(&type_name)));
@@ -199,6 +199,16 @@ fn build_type_filter_input(ty: &Type) -> InputObject {
 
             filter = filter.field(is_null);
         }
+    }
+
+    for rel in ty.relations.iter() {
+        let target = &rel.target;
+        let input = InputValue::new(
+            rel.name.clone(),
+            TypeRef::named(filter_input_name_for_type(target)),
+        );
+
+        filter = filter.field(input);
     }
 
     filter
@@ -349,8 +359,8 @@ fn edge_name_for_type(ty: &Type) -> String {
     format!("{}_edge", ty.name)
 }
 
-fn filter_name_for_type(ty: &Type) -> String {
-    format!("{}_filter", ty.name)
+fn filter_input_name_for_type(ty: &TypeName) -> String {
+    format!("{}_filter", ty)
 }
 
 fn get_type_ref(kind: Kind, presence: Presence, cardinality: Cardinality) -> TypeRef {
