@@ -2,16 +2,16 @@ use crate::graphql::schema::model::{
     Cardinality, DirectRelation, Kind, Presence, Property, Relation, RelationType, Type, TypeName,
 };
 use crate::graphql::schema::resolver::default_resolver;
-use crate::graphql::schema::util::SubGraph;
 use async_graphql::dynamic::*;
 use foldhash::{HashMap, HashMapExt};
 
+const TYPE_NAME_QUERY: &'static str = "query";
 const TYPE_NAME_PAGE_INFO: &'static str = "page_info";
 const TYPE_NAME_METADATA: &'static str = "metadata";
 
 pub fn build_graphql_schema(metamodel: Vec<Type>) -> Result<Schema, SchemaError> {
-    let mut schema_builder = Schema::build("Query", None, None);
-    let mut query = Object::new("Query");
+    let mut schema_builder = Schema::build(TYPE_NAME_QUERY, None, None);
+    let mut query = Object::new(TYPE_NAME_QUERY);
 
     for ty in build_common_types() {
         schema_builder = schema_builder.register(ty);
@@ -28,6 +28,18 @@ pub fn build_graphql_schema(metamodel: Vec<Type>) -> Result<Schema, SchemaError>
             obj = obj.description(desc);
         }
 
+        let conn = build_connection_for_type(ty);
+        schema_builder = schema_builder.register(conn);
+
+        let edge = build_connection_edge_for_type(ty);
+        schema_builder = schema_builder.register(edge);
+
+        let filter = build_type_filter_input(ty);
+        schema_builder = schema_builder.register(filter);
+
+        let accessor = build_accessor_by_filter(ty, &format!("{}_by_filter", ty.name));
+        query = query.field(accessor);
+
         for property in &ty.properties {
             obj = obj.field(build_property(property));
             if property.unique {
@@ -36,19 +48,14 @@ pub fn build_graphql_schema(metamodel: Vec<Type>) -> Result<Schema, SchemaError>
         }
 
         for relation in &ty.relations {
-            let mut sub_graph = build_relation(&types, ty, relation)?;
-            obj = sub_graph.register_fields(obj);
-            schema_builder = sub_graph.register_objects(schema_builder);
+            let accessor = build_relation(&types, ty, relation)?;
+            obj = obj.field(accessor);
         }
 
         //
         // for relation in &ty.reverse_relations {
         //     obj = obj.field(build_reverse_relation(relation));
         // }
-
-        let mut sub_graph = build_accessor_by_filter(ty, &format!("{}_by_filter", ty.name));
-        query = sub_graph.register_fields(query);
-        schema_builder = sub_graph.register_objects(schema_builder);
 
         schema_builder = schema_builder.register(obj);
     }
@@ -129,10 +136,7 @@ fn build_accessor_by_key(ty: &Type, property: &Property) -> Field {
     field
 }
 
-fn build_accessor_by_filter(ty: &Type, accessor_name: &str) -> SubGraph {
-    let mut sub_graph = build_relation_to_many(ty);
-
-    let filter = build_type_filter_input(ty);
+fn build_accessor_by_filter(ty: &Type, accessor_name: &str) -> Field {
     let mut accessor = Field::new(
         accessor_name,
         TypeRef::named_nn_list(connection_name_for_type(ty)),
@@ -140,12 +144,10 @@ fn build_accessor_by_filter(ty: &Type, accessor_name: &str) -> SubGraph {
     );
     accessor = accessor.argument(InputValue::new(
         "filter",
-        TypeRef::named(filter.type_name()),
+        TypeRef::named(filter_name_for_type(ty)),
     ));
 
-    sub_graph.add_object(filter);
-    sub_graph.add_field(accessor);
-    sub_graph
+    accessor
 }
 
 fn build_type_filter_input(ty: &Type) -> InputObject {
@@ -154,7 +156,7 @@ fn build_type_filter_input(ty: &Type) -> InputObject {
     const SUFFIX_CONTAINS: &str = "contains";
     const SUFFIX_NOT_CONTAINS: &str = "not_contains";
 
-    let mut filter = InputObject::new(format!("{}_filter", &ty.name));
+    let mut filter = InputObject::new(filter_name_for_type(ty));
     let type_name = filter.type_name().to_owned();
 
     filter = filter.field(InputValue::new("AND", TypeRef::named_nn_list(&type_name)));
@@ -206,7 +208,7 @@ fn build_relation(
     types: &HashMap<&TypeName, &Type>,
     source: &Type,
     relation: &Relation,
-) -> Result<SubGraph, SchemaError> {
+) -> Result<Field, SchemaError> {
     match &relation.kind {
         RelationType::Direct(spec) => build_direct_relation(types, source, relation, spec),
         RelationType::Mediated(_) => build_mediated_relation(types, relation),
@@ -218,7 +220,7 @@ fn build_direct_relation(
     source_type: &Type,
     relation: &Relation,
     spec: &DirectRelation,
-) -> Result<SubGraph, SchemaError> {
+) -> Result<Field, SchemaError> {
     let target_type = get_target_type(relation, types)?;
 
     let target_property = target_type
@@ -233,14 +235,15 @@ fn build_direct_relation(
         .find(|p| p.name == spec.source_property)
         .ok_or_else(|| SchemaError(format!("Relation {} refers to type {} via source property {}, which is not present in the source type", relation.name, relation.target, spec.source_property)))?;
 
-    let sub_graph = match direct_relation_cardinality(target_property) {
+    let accessor = match direct_relation_cardinality(target_property) {
         Cardinality::One => {
             build_direct_relation_to_one(relation, spec, source_property, target_type)
         }
+
         Cardinality::Many => build_accessor_by_filter(target_type, &relation.name),
     };
 
-    Ok(sub_graph)
+    Ok(accessor)
 }
 
 fn direct_relation_cardinality(target_property: &Property) -> Cardinality {
@@ -263,65 +266,23 @@ fn build_direct_relation_to_one(
     spec: &DirectRelation,
     source_property: &Property,
     target_type: &Type,
-) -> SubGraph {
-    let field = Field::new(
+) -> Field {
+    Field::new(
         relation.name.clone(),
         match direct_relation_presence(spec, source_property) {
             Presence::Required => TypeRef::named_nn(target_type.name.clone()),
             Presence::Optional => TypeRef::named(target_type.name.clone()),
         },
         default_resolver,
-    );
-
-    let mut sub_graph = SubGraph::new();
-    sub_graph.add_field(field);
-    sub_graph
+    )
 }
 
 fn build_mediated_relation(
     types: &HashMap<&TypeName, &Type>,
     relation: &Relation,
-) -> Result<SubGraph, SchemaError> {
+) -> Result<Field, SchemaError> {
     let target_type = get_target_type(relation, types)?;
     Ok(build_accessor_by_filter(target_type, &relation.name))
-}
-
-fn build_relation_to_many(target_type: &Type) -> SubGraph {
-    let mut conn_obj = Object::new(connection_name_for_type(target_type));
-    let mut conn_edge = Object::new(edge_name_for_type(target_type));
-
-    let edges = Field::new(
-        "edges",
-        TypeRef::named_nn_list(conn_edge.type_name()),
-        default_resolver,
-    );
-    conn_obj = conn_obj.field(edges);
-
-    let page_info = Field::new(
-        "page_info",
-        TypeRef::named_nn(TYPE_NAME_PAGE_INFO),
-        default_resolver,
-    );
-    conn_obj = conn_obj.field(page_info);
-
-    let meta = Field::new(
-        "metadata",
-        TypeRef::named_nn(TYPE_NAME_METADATA),
-        default_resolver,
-    );
-    conn_edge = conn_edge.field(meta);
-
-    let node = Field::new(
-        "node",
-        TypeRef::named_nn(target_type.name.clone()),
-        default_resolver,
-    );
-    conn_edge = conn_edge.field(node);
-
-    let mut sub_graph = SubGraph::new();
-    sub_graph.add_object(conn_obj);
-    sub_graph.add_object(conn_edge);
-    sub_graph
 }
 
 fn get_target_type<'n, 't: 'n>(
@@ -342,12 +303,54 @@ fn get_target_type<'n, 't: 'n>(
 //     todo!()
 // }
 
+fn build_connection_for_type(ty: &Type) -> Object {
+    let mut obj = Object::new(connection_name_for_type(ty));
+
+    let page_info = Field::new(
+        "page_info",
+        TypeRef::named_nn(TYPE_NAME_PAGE_INFO),
+        default_resolver,
+    );
+
+    let edges = Field::new(
+        "edges",
+        TypeRef::named_nn_list(edge_name_for_type(ty)),
+        default_resolver,
+    );
+
+    obj = obj.field(page_info);
+    obj = obj.field(edges);
+
+    obj
+}
+
+fn build_connection_edge_for_type(ty: &Type) -> Object {
+    let mut obj = Object::new(connection_name_for_type(ty));
+
+    let meta = Field::new(
+        "metadata",
+        TypeRef::named_nn(TYPE_NAME_METADATA),
+        default_resolver,
+    );
+
+    let node = Field::new("node", TypeRef::named_nn(ty.name.clone()), default_resolver);
+
+    obj = obj.field(meta);
+    obj = obj.field(node);
+
+    obj
+}
+
 fn connection_name_for_type(ty: &Type) -> String {
     format!("{}_connection", ty.name)
 }
 
 fn edge_name_for_type(ty: &Type) -> String {
     format!("{}_edge", ty.name)
+}
+
+fn filter_name_for_type(ty: &Type) -> String {
+    format!("{}_filter", ty.name)
 }
 
 fn get_type_ref(kind: Kind, presence: Presence, cardinality: Cardinality) -> TypeRef {

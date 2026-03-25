@@ -1,4 +1,3 @@
-pub mod model;
 pub mod assembly;
-mod util;
+pub mod model;
 mod resolver;
