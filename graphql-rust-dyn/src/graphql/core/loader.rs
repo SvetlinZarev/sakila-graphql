@@ -4,8 +4,8 @@ use deadpool_postgres::{GenericClient, Pool};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::pin::pin;
-use tokio_postgres::types::{FromSqlOwned, ToSql};
 use tokio_postgres::Row;
+use tokio_postgres::types::{FromSqlOwned, ToSql};
 
 pub trait FromRow {
     fn from_row(row: &Row) -> Result<Self, Error>

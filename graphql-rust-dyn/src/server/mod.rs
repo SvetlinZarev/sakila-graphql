@@ -1,15 +1,15 @@
 use crate::config::ServiceConfig;
 use async_graphql::Executor;
+use axum::Router;
 use axum::http::StatusCode;
 use axum::routing::{get, post_service};
-use axum::Router;
 use std::error::Error;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
+use tower_http::ServiceBuilderExt;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
-use tower_http::ServiceBuilderExt;
 use tracing::Level;
 
 mod api_explorer;

@@ -1,5 +1,5 @@
 use crate::graphql::core::filter::{
-    and_filters, eq, is_in, is_not_in, join_table, neq, or_filters, InputFilter, TypeInfo,
+    InputFilter, TypeInfo, and_filters, eq, is_in, is_not_in, join_table, neq, or_filters,
 };
 use crate::graphql::core::loader::{FromRow, WithId};
 use crate::graphql::core::query::query;

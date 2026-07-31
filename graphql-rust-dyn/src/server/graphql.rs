@@ -1,19 +1,19 @@
 use async_graphql::dataloader::{DataLoader, HashMapCache};
 use async_graphql::{
-    http::{create_multipart_mixed_stream, is_accept_multipart_mixed},
     BatchRequest, Executor, Request,
+    http::{create_multipart_mixed_stream, is_accept_multipart_mixed},
 };
 use async_graphql_axum::rejection::GraphQLRejection;
 use async_graphql_axum::{GraphQLBatchRequest, GraphQLRequest, GraphQLResponse};
 use axum::{
+    BoxError,
     body::{Body, HttpBody},
     extract::FromRequest,
     http::{Request as HttpRequest, Response as HttpResponse},
     response::IntoResponse,
-    BoxError,
 };
 use bytes::Bytes;
-use futures_util::{future::BoxFuture, StreamExt};
+use futures_util::{StreamExt, future::BoxFuture};
 use rustc_hash::FxBuildHasher;
 use std::any::Any;
 use std::sync::Arc;

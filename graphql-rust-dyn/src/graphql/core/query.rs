@@ -1,5 +1,5 @@
 use crate::graphql::core::filter::{InputFilter, TypeInfo};
-use crate::graphql::core::loader::{load, FromRow};
+use crate::graphql::core::loader::{FromRow, load};
 use crate::query::{JoinedTable, SqlVisitor, TableFilter};
 use async_graphql::Context;
 use deadpool_postgres::Pool;

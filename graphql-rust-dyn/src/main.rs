@@ -1,12 +1,9 @@
 use graphql_rust_dyn::config;
 use graphql_rust_dyn::config::ServiceConfig;
 use graphql_rust_dyn::graphql::schema::assembly::build_graphql_schema;
-use graphql_rust_dyn::graphql::schema::model::{
-    Cardinality, DirectRelation, Kind, MediatedRelation, Presence, Property, PropertyName,
-    Relation, RelationType, ReverseRelation, TableName, Type, TypeName,
-};
+
 use graphql_rust_dyn::init::{init_db_pool, init_tracing};
-use graphql_rust_dyn::server::{start_server, AppState};
+use graphql_rust_dyn::server::{AppState, start_server};
 use std::error::Error;
 
 const PREFIX: &str = "CFG";

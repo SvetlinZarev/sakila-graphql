@@ -1,5 +1,6 @@
 use crate::graphql::schema::model::{
-    Cardinality, DirectRelation, Kind, Presence, Property, Relation, RelationType, Type, TypeName,
+    Cardinality, DirectRelation, Kind, Presence, Property, Relation, RelationType, ReverseRelation,
+    Type, TypeName,
 };
 use crate::graphql::schema::resolver::default_resolver;
 use async_graphql::dynamic::*;
@@ -48,14 +49,12 @@ pub fn build_graphql_schema(metamodel: Vec<Type>) -> Result<Schema, SchemaError>
         }
 
         for relation in &ty.relations {
-            let accessor = build_relation(&types, ty, relation)?;
-            obj = obj.field(accessor);
+            obj = obj.field(build_relation(&types, ty, relation)?);
         }
 
-        //
-        // for relation in &ty.reverse_relations {
-        //     obj = obj.field(build_reverse_relation(relation));
-        // }
+        for relation in &ty.reverse_relations {
+            obj = obj.field(build_reverse_relation(&types, ty, relation)?);
+        }
 
         schema_builder = schema_builder.register(obj);
     }
@@ -227,20 +226,25 @@ fn build_relation(
     source: &Type,
     relation: &Relation,
 ) -> Result<Field, SchemaError> {
+    let target = types.get(&relation.target).copied().ok_or_else(|| {
+        return SchemaError(format!(
+            "Relation [{}] refers to unknow type [{}]",
+            relation.name, relation.target
+        ));
+    })?;
+
     match &relation.kind {
-        RelationType::Direct(spec) => build_direct_relation(types, source, relation, spec),
-        RelationType::Mediated(_) => build_mediated_relation(types, relation),
+        RelationType::Direct(spec) => build_direct_relation(source, target, relation, spec),
+        RelationType::Mediated(_) => build_mediated_relation(relation, target),
     }
 }
 
 fn build_direct_relation(
-    types: &HashMap<&TypeName, &Type>,
     source_type: &Type,
+    target_type: &Type,
     relation: &Relation,
     spec: &DirectRelation,
 ) -> Result<Field, SchemaError> {
-    let target_type = get_target_type(relation, types)?;
-
     let target_property = target_type
         .properties
         .iter()
@@ -295,31 +299,51 @@ fn build_direct_relation_to_one(
     )
 }
 
-fn build_mediated_relation(
+fn build_mediated_relation(relation: &Relation, target: &Type) -> Result<Field, SchemaError> {
+    Ok(build_accessor_by_filter(target, &relation.name))
+}
+
+fn build_reverse_relation(
     types: &HashMap<&TypeName, &Type>,
-    relation: &Relation,
+    target: &Type,
+    reverse_relation: &ReverseRelation,
 ) -> Result<Field, SchemaError> {
-    let target_type = get_target_type(relation, types)?;
-    Ok(build_accessor_by_filter(target_type, &relation.name))
+    let source = types
+        .get(&reverse_relation.source)
+        .copied()
+        .ok_or_else(|| {
+            return SchemaError(format!(
+                "Reverse relation [{}] refers to unknow type [{}]",
+                reverse_relation.name, reverse_relation.source
+            ));
+        })?;
+
+    let relation = source
+        .relations
+        .iter()
+        .find(|r| r.name == reverse_relation.source_property)
+        .ok_or_else(|| {
+            return SchemaError(format!(
+                "Reverse relation [{}] in type [{}] refers to unknown relation [{}] in type [{}]",
+                reverse_relation.name,
+                reverse_relation.source,
+                reverse_relation.source_property,
+                source.name
+            ));
+        })?;
+
+    match &relation.kind {
+        RelationType::Direct(spec) => todo!(),
+        RelationType::Mediated(_) => build_mediated_reverse_relation(reverse_relation, source),
+    }
 }
 
-fn get_target_type<'n, 't: 'n>(
-    relation: &'n Relation,
-    types: &'t HashMap<&'t TypeName, &'t Type>,
-) -> Result<&'t Type, SchemaError> {
-    let Some(target_type) = types.get(&relation.target).copied() else {
-        return Err(SchemaError(format!(
-            "Relation [{}] refers to unknow type [{}]",
-            relation.name, relation.target
-        )));
-    };
-
-    Ok(target_type)
+fn build_mediated_reverse_relation(
+    relation: &ReverseRelation,
+    source: &Type,
+) -> Result<Field, SchemaError> {
+    Ok(build_accessor_by_filter(source, &relation.name))
 }
-
-// fn build_reverse_relation(relation: &ReverseRelation) -> Field {
-//     todo!()
-// }
 
 fn build_connection_for_type(ty: &Type) -> Object {
     let mut obj = Object::new(connection_name_for_type(ty));

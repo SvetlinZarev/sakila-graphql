@@ -1,5 +1,5 @@
 use crate::server::GRAPHQL_ENDPOINT;
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, GraphiQLSource};
+use async_graphql::http::{GraphQLPlaygroundConfig, GraphiQLSource, playground_source};
 use axum::response::IntoResponse;
 
 pub async fn playground() -> impl IntoResponse {

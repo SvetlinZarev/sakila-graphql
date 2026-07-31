@@ -1,5 +1,5 @@
-use crate::query::visitor::Visitor;
 use crate::query::TableFilter;
+use crate::query::visitor::Visitor;
 
 #[derive(Debug, Clone)]
 pub struct JoinTableFilter<'f> {

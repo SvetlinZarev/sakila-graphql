@@ -6,7 +6,7 @@ use tokio_postgres::NoTls;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt};
 
 pub fn init_db_pool(cfg: &DatabaseConfig) -> Result<Pool, CreatePoolError> {
     let mut pool_cfg = deadpool_postgres::PoolConfig::new(cfg.max_conn);
